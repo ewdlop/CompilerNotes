@@ -8,6 +8,181 @@ https://onecompiler.com/
 
 https://onecompiler.com/redis
 
+# Minimal Viable Product
+
+Sure, I'll break down the necessary steps to set up and run the Haskell parser code using the `parsec` library in different comment blocks:
+
+1. **Set Up Your Haskell Project:**
+
+   First, create a new Haskell project. You can use Stack or Cabal to manage your project.
+
+   **Using Stack:**
+
+   ```sh
+   stack new my-law-parser
+   cd my-law-parser
+   ```
+
+   **Using Cabal:**
+
+   ```sh
+   cabal init --non-interactive
+   cd my-law-parser
+   ```
+
+2. **Add the `parsec` Dependency:**
+
+   Open your project's `.cabal` or `package.yaml` file and add `parsec` to the dependencies.
+
+   **For Cabal:**
+
+   ```cabal
+   build-depends:       base >=4.7 && <5, parsec
+   ```
+
+   **For Stack:**
+
+   ```yaml
+   dependencies:
+   - base >= 4.7 && < 5
+   - parsec
+   ```
+
+3. **Create Your Haskell Source File:**
+
+   Create a new file named `Main.hs` in the `src` directory (or the project root if you're not using a specific structure).
+
+   ```sh
+   touch src/Main.hs
+   ```
+
+4. **Write the Parser Code:**
+
+   Open `Main.hs` and add the following code to define the parser:
+
+   ```haskell
+   import Text.Parsec
+   import Text.Parsec.String (Parser)
+   import Text.Parsec.Char (digit, letter)
+   import Control.Applicative ((<|>), many)
+
+   -- Define the data types to represent the grammar
+   data Law = Law Section [Section] deriving Show
+   data Section = Section Number ClauseList deriving Show
+   data ClauseList = ClauseList [Clause] deriving Show
+   data Clause = Clause Number Statement deriving Show
+   data Statement = Statement Subject Verb Object (Maybe Conditions) deriving Show
+   data Conditions = Conditions [Condition] deriving Show
+   data Condition = Condition Subject Verb Object deriving Show
+   data Subject = Individual | Entity | Court | ProperNoun String deriving Show
+   data Verb = Shall | Must | May | IsEntitledTo deriving Show
+   data Object = ComplyWith Requirement | Action Action deriving Show
+   data Requirement = TaxPayment | LegalObligations | Regulations deriving Show
+   data Action = PayFine | SubmitReport | AttendHearing deriving Show
+   type Number = String
+
+   -- Parser for Digit
+   digitParser :: Parser Char
+   digitParser = oneOf "0123456789"
+
+   -- Parser for Number
+   numberParser :: Parser Number
+   numberParser = many1 digitParser
+
+   -- Parser for ProperNoun
+   properNounParser :: Parser Subject
+   properNounParser = ProperNoun <$> many1 letter
+
+   -- Parser for Subject
+   subjectParser :: Parser Subject
+   subjectParser = (string "individual" >> return Individual)
+               <|> (string "entity" >> return Entity)
+               <|> (string "court" >> return Court)
+               <|> properNounParser
+
+   -- Parser for Verb
+   verbParser :: Parser Verb
+   verbParser = (string "shall" >> return Shall)
+             <|> (string "must" >> return Must)
+             <|> (string "may" >> return May)
+             <|> (string "is entitled to" >> return IsEntitledTo)
+
+   -- Parser for Requirement
+   requirementParser :: Parser Requirement
+   requirementParser = (string "tax payment" >> return TaxPayment)
+                   <|> (string "legal obligations" >> return LegalObligations)
+                   <|> (string "regulations" >> return Regulations)
+
+   -- Parser for Action
+   actionParser :: Parser Action
+   actionParser = (string "pay fine" >> return PayFine)
+              <|> (string "submit report" >> return SubmitReport)
+              <|> (string "attend hearing" >> return AttendHearing)
+
+   -- Parser for Object
+   objectParser :: Parser Object
+   objectParser = (string "comply with" >> spaces >> ComplyWith <$> requirementParser)
+              <|> (Action <$> actionParser)
+
+   -- Parser for Condition
+   conditionParser :: Parser Condition
+   conditionParser = Condition <$> (subjectParser <* spaces) <*> (verbParser <* spaces) <*> objectParser
+
+   -- Parser for ConditionList
+   conditionListParser :: Parser [Condition]
+   conditionListParser = sepBy1 conditionParser (spaces >> string "and" >> spaces)
+
+   -- Parser for Conditions
+   conditionsParser :: Parser Conditions
+   conditionsParser = (string "if" >> spaces >> Conditions <$> conditionListParser) <|> return (Conditions [])
+
+   -- Parser for Statement
+   statementParser :: Parser Statement
+   statementParser = Statement <$> (subjectParser <* spaces) <*> (verbParser <* spaces) <*> (objectParser <* spaces) <*> optionMaybe conditionsParser
+
+   -- Parser for Clause
+   clauseParser :: Parser Clause
+   clauseParser = Clause <$> (string "Clause" >> spaces >> numberParser <* string ":") <*> (spaces >> statementParser)
+
+   -- Parser for ClauseList
+   clauseListParser :: Parser ClauseList
+   clauseListParser = ClauseList <$> many1 (clauseParser <* spaces)
+
+   -- Parser for Section
+   sectionParser :: Parser Section
+   sectionParser = Section <$> (string "Section" >> spaces >> numberParser <* string ":") <*> (spaces >> clauseListParser)
+
+   -- Parser for Law
+   lawParser :: Parser Law
+   lawParser = Law <$> sectionParser <*> many sectionParser
+
+   -- Main function for testing the parser
+   main :: IO ()
+   main = do
+       let input = "Section 1: Clause 1: individual shall comply with tax payment if individual must comply with legal obligations and entity may comply with regulations Section 2: Clause 2: entity may submit report"
+       case parse lawParser "" input of
+           Left err -> print err
+           Right result -> print result
+   ```
+
+5. **Build and Run the Project:**
+
+   **Using Stack:**
+
+   ```sh
+   stack build
+   stack exec my-law-parser-exe
+   ```
+
+   **Using Cabal:**
+
+   ```sh
+   cabal build
+   cabal run
+   ```
+
+These steps will set up a Haskell project, add the necessary dependencies, write the parser code, and run the project to test the parser.
+
 # For Reader
 
 A compiler is a software tool that translates code written in a high-level programming language (such as C, C++, or Java) into machine language (binary code) that a computer's CPU can execute. The compilation process involves several stages, each transforming the code closer to its final executable form. Here's an overview of the typical stages in a compiler chain:
